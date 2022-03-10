@@ -16,7 +16,8 @@ float heuristic_function(varset &variables, varset &all_variables, type_data &ca
 
 	//cout << pa.get_current_count();
 	//debug
-
+	boost::timer::auto_cpu_timer act;
+	act.start();
 	for (byte i = 1; i < all_variables.get_count(); i++)
 	{
 		//枚举所有元素，如果元素在差集当中，就计算
@@ -28,5 +29,8 @@ float heuristic_function(varset &variables, varset &all_variables, type_data &ca
 			//从全集当中去掉当前元素，再放回
 		}
 	}
+	act.stop();
+	cout << "启发式函数计算：" << endl;
+	act.report();
 	return answer;
 }

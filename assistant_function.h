@@ -9,7 +9,7 @@
 using namespace std;
 
 vector<varset> reconstruct_solution(Node* goal,//终点
-                                    unordered_map<varset, Node*, myOwnHash>& generated_Nodes,//变量集合与生成节点的映射
+                                    unordered_map<varset, Node*, varset::myOwnHash>& generated_Nodes,//变量集合与生成节点的映射
                                     byte variable_count,//变量计数
                                     type_data& cache);//保存数据的对象
 

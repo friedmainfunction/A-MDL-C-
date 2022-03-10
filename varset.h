@@ -4,6 +4,7 @@
 #include <xstring>
 #include <string>
 #include <iostream>
+#include <bitset>
 using namespace std;
 class varset
 {
@@ -14,22 +15,23 @@ public:
     }
     varset() : current_count(0), lenth(0)
     {
-        variables = new bool;
+        //variables = new bool;
     }
     varset(byte variable_count)//由于变量编号从1开始，调用的时候自行将长度 + 1
     {
         lenth = variable_count;
-        variables = new bool[lenth];
+        //variables = new bool[lenth];
         current_count = 0;
-        memset(variables, false, sizeof(bool) * lenth);
+        //memset(variables, false, sizeof(bool) * lenth);
     }
 
     varset(const varset &another_varset) //拷贝构造
     {
-        this -> variables = new bool[another_varset.get_count()];
+        //this -> variables = new bool[another_varset.get_count()];
         this -> lenth = another_varset.get_count();
         this -> current_count = another_varset.get_current_count();
-        memcpy(this -> variables, another_varset.variables, sizeof(bool) * lenth);
+        variables = another_varset.variables;
+        //memcpy(this -> variables, another_varset.variables, sizeof(bool) * lenth);
     }
 
     byte get_current_count() const //获取当前集合当中变量个数
@@ -39,18 +41,24 @@ public:
 
     varset &operator = (const varset &another_varset) //赋值函数
     {
-        delete this -> variables;
-        this -> variables = new bool[another_varset.get_count()];
+        //delete this -> variables;
+        //this -> variables = new bool[another_varset.get_count()];
         this -> lenth = another_varset.get_count();
         this -> current_count = another_varset.get_current_count();
-        memcpy(this -> variables, another_varset.variables, sizeof(bool) * lenth);
+        //memcpy(this -> variables, another_varset.variables, sizeof(bool) * lenth);
+        this -> variables = another_varset.variables;
         return *this;
     }
-
-    void set(byte variable)
+    
+    bool operator != (const varset& another_varset)
+    {
+        return !(this -> variables == another_varset.variables);
+    }
+    inline void set(byte variable)
     {
         if (variable + 1 > this -> get_count())
             return;
+        //varset下标从1开始
 
         if (!variables[variable])
             current_count ++;
@@ -72,7 +80,7 @@ public:
         variables[variable] = false;
     }
 
-    bool test(byte variable) const
+    inline bool test(byte variable) const
     {
 
         return variables[variable];
@@ -82,7 +90,7 @@ public:
     {
         varset answer(this -> lenth);
 
-        for (int i = 0; i < this->lenth; i++)
+        for (int i = 0; i < this -> lenth; i++)
         {
             if (this -> variables[i] || another_varset.variables[i])
             {
@@ -116,12 +124,29 @@ public:
         if (min_lenth || (this -> lenth == 0 && another_varset.lenth == 0))
             return true;
     }
+
+    struct myOwnHash
+    {
+        size_t operator() (const varset& s) const noexcept
+        {
+            hash<bitset<25>> myhash;
+            string str;
+
+            return myhash(s.variables);
+        }
+        //自定类必须自定哈希函数
+    };
+
 private:
     byte lenth;
-    bool *variables;
+    //集合长度
+    //bool *variables;
+    bitset<25> variables;
+    //存变量，具体长度根据实验的各数据集变量的最大数目确定
     byte current_count;
+    //当前变量数目
 };
-
+/*
 struct myOwnHash
 {
     size_t operator() (const varset& s) const noexcept
@@ -137,4 +162,6 @@ struct myOwnHash
     }
     //自定类必须自定哈希函数
 };
+*/
+
 #endif

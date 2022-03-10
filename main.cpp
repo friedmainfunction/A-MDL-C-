@@ -4,14 +4,29 @@
 #include "data.h"
 #include "heuristic_function.h"
 #include "assistant_function.h"
+#include "AD-tree.h"
 #include <iostream>
 #include <cstring>
 #include <algorithm>
 #include <unordered_map>
 #include <queue>
+#include <time.h>
 
 using namespace std;
-
+inline void print_varset(varset& variables)
+{
+    if (variables.get_current_count() == 0)
+    {
+        cout << "NULL";
+        return;
+    }
+    for (int i = 0; i < variables.get_count(); i++)
+    {
+        if (variables.test(i))
+            cout << i << " ";
+    }
+}
+//debug
 string dataset_path("wine.data");
 //数据集
 
@@ -19,8 +34,7 @@ string network_path("C:\\Users\\hasee\\Desktop\\test.txt");
 //最优网络写入的路径
 
 
-
-unordered_map<varset, Node*, myOwnHash> generated_Nodes;
+unordered_map<varset, Node*, varset::myOwnHash> generated_Nodes;
 //隐式的顺序图
 
 int Node_expended;
@@ -33,8 +47,11 @@ byte variable_count;
 
 varset all_variables(1);
 
+int MDL_count = 0;
 int main()
 {
+    boost::timer::auto_cpu_timer act;
+    act.start();
     type_data cache(dataset_path);
     //读入数据集
     byte variable_count = cache.get_variable_count();
@@ -42,13 +59,14 @@ int main()
     varset ancestors(variable_count + 1);
     varset scc(ancestors);
     //初始化两个集合
-    priority_queue<Node*> openlist;
+    priority_queue<Node*, vector<Node*>, Node::CompStr> openlist;
     
     scc.set_first_n(variable_count);
     //本情形，默认前n个变量都考虑
     //变量编号从1开始，0不算
     byte leaf(0);
     Node *root = new Node(0.0f, 0.0f, ancestors, leaf);
+
     //初始化根节点
     openlist.push(root);
 
@@ -64,8 +82,26 @@ int main()
     Node_expended = 0;
     out_of_time = false;
     //尚未拓展节点
-    while (openlist.size() > 0 || !out_of_time)
+    act.start();
+    /*
+    vary_Node* AD_root = new vary_Node(cache);
+    vector<float> initial_value;
+    vector<int> initial_variables;
+    AD_root -> make_AD_Node(initial_variables, initial_value);
+    //通过AD-tree计算MDL
+    
+    unordered_map<int, unordered_map<vector<int>, float, vector_int_Hash>>& MDL_score= cache.get_MDL_score();
+    for (auto i = MDL_score.begin(); i != MDL_score.end(); i ++)
     {
+        for (auto j = (*i).second.begin(); j != (*i).second.end(); j ++)
+        {
+            (*j).second += (log(cache.get_my_data().size()) / 2) * pow(2, (*j).first.size());
+        }
+    }
+    //对所有MDL加上K
+    */
+    while (openlist.size() > 0 || !out_of_time)
+     {
         //若openlist空或超时则跳出
 
         Node* u = openlist.top();
@@ -108,12 +144,30 @@ int main()
             if (succ == NULL)
             {
                 //尚未生成则直接生成
-                float g = u -> get_g() + cache.best_MDL(leaf, new_variables);//to do
+                float g = u -> get_g() + cache.best_MDL(leaf, new_variables);
                 //计算当前代价
                 complete = false;
                 //标记未完成
-                float h = heuristic_function(new_variables, all_variables, cache, u, leaf);//to do
+                //bool flag = false;
+                //heuristic_start = clock();
+                float h = heuristic_function(new_variables, all_variables, cache, u, leaf);
                 //计算启发式函数值
+                //heuristic_end = clock();
+                /*
+                if (!flag)
+                {
+                    heuristic += double(heuristic_end - heuristic_start);
+                    //flag = true;
+                }
+                */
+                //debug
+                /*
+                cout << "h: " << h << "g: " << g << " f: " << g + h << endl;
+                print_varset(new_variables); cout << endl;
+                cout << "leaf: " << leaf << endl;
+                cout << endl;
+                */
+                //debug
                 succ = new Node(g, h, new_variables, leaf);
                 //生成该后继
                 openlist.push(succ);
@@ -142,6 +196,9 @@ int main()
         }
     }
     //跳出循环之后
+    act.stop();
+    act.report();
+    //时间
     if (goal != NULL)
     {
         //若找到目标
@@ -167,5 +224,6 @@ int main()
         delete pair.second;
     }
     //释放空间
+    cout << "MDL_count: " << MDL_count << endl;
     return 0;
 }

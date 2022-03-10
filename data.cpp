@@ -1,5 +1,6 @@
 #include "data.h"
 using namespace std;
+extern int MDL_count;
 inline void print_varset(varset & variables)
 {
     if (variables.get_current_count() == 0)
@@ -19,6 +20,8 @@ type_data::type_data(string dataset_path)
     stringstream one_line;
     string original_line;
     fstream in;
+    vector<float> average;
+    //平均值
     in.open(dataset_path, ios::in);
     //打开文件
     if (!in)
@@ -47,6 +50,33 @@ type_data::type_data(string dataset_path)
     }
     variable_count = my_data.back().size();
     //一行的数量就是变量数量
+
+    for (int i = 0; i < variable_count; i++)
+    {
+        average.push_back(0);
+    }
+
+    for (int i = 0; i < my_data.size(); i ++)
+    {
+        for (int j = 0; j < variable_count; j ++)
+            average[j] = average[j] + (my_data[i][j] - average[j]) / (i + 1);
+    }
+    //求算数平均值
+
+    for (int i = 0; i < my_data.size(); i++)
+    {
+        for (int j = 0; j < variable_count; j++)
+        {
+            if (average[j] >= my_data[i][j])
+                my_data[i][j] = 0;
+            else
+                my_data[i][j] = 1;
+        }
+    }
+    //debug
+    //处理数据
+    //每一个变量变成0，1两种取值
+
     /*
     for (int i = 0; i < my_data.size(); i++)
     {
@@ -82,6 +112,7 @@ type_data::type_data(string dataset_path)
     }
     //debug
     */
+    upper_bound = (log(2 * my_data.size()) - log(log(my_data.size())));
 }
 
 byte type_data::get_variable_count()
@@ -91,10 +122,7 @@ byte type_data::get_variable_count()
 
 float type_data::best_MDL(byte leaf, varset& pa, bool* is_cut_by_superset)
 {
-    int upper_bound = (log(2 * my_data.size()) - log(log(my_data.size())));
-    //upper_bound = INT_MAX;
-    //debug
-    //计算父图变量个数的上界
+
     bool is_cut_by_number = false, is_now_cut_by_superset = false;
     //通过变量个数剪枝和通过超集剪枝的标志
     /*if (!pa.get_current_count())
@@ -105,8 +133,10 @@ float type_data::best_MDL(byte leaf, varset& pa, bool* is_cut_by_superset)
     if (optimal_parent_variables[leaf].count(pa))
     {
         //如果已经计算过，那么看一下是否超集可以剪枝，可以则标记
-        if (log(my_data.size()) * K(leaf - 1, pa) / 2 < optimal_parent_variables[leaf][pa].second)
+        
+        if (log(my_data.size()) * K(leaf - 1, pa) / 2 < optimal_parent_variables[leaf][pa].second && pa != optimal_parent_variables[leaf][pa].first)
             *is_cut_by_superset = true;
+        
         //超集剪枝
         return optimal_parent_variables[leaf][pa].second;
         //直接返回值
@@ -143,29 +173,48 @@ float type_data::best_MDL(byte leaf, varset& pa, bool* is_cut_by_superset)
             //记录一下当前给定变量以及集合下的最优父集
             pa.set(i);
             //将去掉的变量放回
+            /*
+            cout << "leaf: " << leaf << " i: " << i << endl;
+            cout << "next_score: " << next_score << " score: " << score << endl;
+            cout << "inner_pa: "; print_varset(inner_pa); cout << endl;
+            cout << "pa: "; print_varset(pa); cout << endl;
+            cout << endl;
+            */
+            //debug
             if (next_score < score)
             {
-                cout << "leaf: " << leaf << "i: " << i << endl;
-                cout << "next_score: " << next_score << " score: " << score << endl;
-                cout << "inner_pa: "; print_varset(inner_pa); cout << endl;
-                cout << "pa: "; print_varset(pa); cout << endl;
-                cout << endl;
-                //debug
                 optimal_parent_variables[leaf][pa] = make_pair(inner_pa, next_score);
                 //如果当前计算的分数更优，则更改记录
             }
         }
     }
+    if (log(my_data.size()) * K(leaf - 1, pa) / 2 < optimal_parent_variables[leaf][pa].second)
+    {
+        *is_cut_by_superset = true;
+        /*
+        if (pa.get_current_count() == 0)
+        {
+            cout << "空集剪枝" << endl;
+            cout << log(my_data.size()) * K(leaf - 1, pa) / 2 << " < " << optimal_parent_variables[leaf][pa].second << endl;
+            system("pause");
+        }
+        */
+    }
+    //计算一下本父集合超集是否可以剪枝
     if (!is_cut_by_number && !is_now_cut_by_superset)
     {
         //如果剪枝都不成功，则计算当前的MDL
         float current_pa_score = MDL(leaf, pa);
+
         if (current_pa_score < optimal_parent_variables[leaf][pa].second)
             optimal_parent_variables[leaf][pa] = make_pair(pa, current_pa_score);
+        /*
         cout << endl << endl;
         cout << "leaf: " << leaf << "PA: "; print_varset(pa); cout << endl;
         cout << "MDL_score: " << current_pa_score << endl;
+        cout << "best_MDL: " << optimal_parent_variables[leaf][pa].second << endl;
         cout << endl << endl;
+        */
         //debug
         //如果更优，则记录
     }
@@ -173,11 +222,14 @@ float type_data::best_MDL(byte leaf, varset& pa, bool* is_cut_by_superset)
     cout << "leaf: " << leaf << endl;
     cout << "PA: "; print_varset(pa); cout << endl;
     cout << "best_pa: "; print_varset(optimal_parent_variables[leaf][pa].first); cout << endl;
+    cout << "score: " << optimal_parent_variables[leaf][pa].second << endl;
     */
     //debug
-    if (log(my_data.size()) * K(leaf - 1, pa) / 2 < optimal_parent_variables[leaf][pa].second)
-        *is_cut_by_superset = true;
-    //计算一下本父集合超集是否可以剪枝
+    
+
+    
+    //debug
+    
     delete is_now_cut_by_superset_flag;
     //删掉当前申请的空间
     return optimal_parent_variables[leaf][pa].second;
@@ -203,15 +255,33 @@ float type_data::best_MDL(byte leaf, varset& pa)
     return answer;
 }
 
-varset type_data::get_optimal_parents(byte leaf, varset pa)
+varset type_data::get_optimal_parents(byte leaf, varset& pa)
 {
-    return optimal_parent_variables[leaf][pa].first;
+    varset& ans (optimal_parent_variables[leaf][pa].first);
+    return ans;
 }
 
 float type_data::MDL(byte leaf, varset pa)
 {
-    if (pa.test(14) && pa.test(13))
-        system("pause");
+    vector<int> now;
+    pa.remove(leaf);
+    for (int i = 0; i < pa.get_count(); i++)
+    {
+        if (pa.test(i))
+            now.push_back(i);
+    }
+    if (MDL_score[leaf].count(now))
+        return MDL_score[leaf][now];
+    MDL_count ++;
+    //else
+        //return pow(2, now.size());
+    /*
+    cout << "calculate MDL!\n";
+    cout << "leaf: " << leaf << endl;
+    cout << "pa: ";  print_varset(pa); cout << endl;
+    system("pause");
+    */
+    //debug
     float h = 0, k = 0;
     //MDL保证pa不包含leaf
     vector<int> variables;
@@ -256,6 +326,7 @@ float type_data::MDL(byte leaf, varset pa)
         */
         //debug
     }
+
     /*
     for (auto i : variables)
         cout << i << " ";
@@ -272,6 +343,23 @@ float type_data::MDL(byte leaf, varset pa)
     return log(my_data.size()) * k / 2 - h;
     //根据公式求和
 }
+
+void type_data::MDL(byte leaf, vector<int>& variables, int n_x_pa, int n_pa)
+{
+    if (variables.size() > upper_bound)
+        return;
+    //大于上界的不用算
+    //system("pause");
+
+    if (!MDL_score[leaf].count(variables))
+    {
+        MDL_score[leaf][variables] = 0;
+    }
+    //if (variables.size() == 0)
+        //system("pause");
+    MDL_score[leaf][variables] -= n_x_pa * (log(n_x_pa) - log(n_pa));
+}
+
 float** type_data::reconstruct_combine(const vector<int>& variables, float** before, int* total, int dimension)
 {
     bool* flag = new bool[*total];
@@ -281,7 +369,7 @@ float** type_data::reconstruct_combine(const vector<int>& variables, float** bef
     memset(flag, false, sizeof(bool) * (*total));
     for (int i = 0; i < *total; i++)
     {
-        bool is_same = true;
+        //bool is_same = true;
         //标记当前行是否在数据集当中存在
         //遍历当前行
         for (int j = 0; j < my_data.size(); j++)
@@ -417,6 +505,16 @@ float** type_data::combine(const vector<int>& variables, int depth, int* total_d
     return answer;
 }
 
+float** type_data::combine(const vector<int>& variables)
+{
+    int* size = new int;
+
+    float **answer = combine(variables, 1, size);
+
+    delete size;
+
+    return answer;
+}
 /*
 float** combine(const vector<int>& variables, int* total_dimension_size)
 {
@@ -449,6 +547,7 @@ float type_data::H(const vector<int>& variables, float* current_combine)
                 is_n_pa = false;
             }
         }
+        //先看除了leaf以外的变量能不能匹配
         if (is_n_pa)
         {
             //如果pa比较全部通过，那么再看x_pa
@@ -496,5 +595,17 @@ byte type_data::K(byte leaf, const varset& pa)//传参的时候leaf已经减去1
     return answer;
 }
 
+vector<vector<float>>& type_data::get_my_data()
+{
+    return my_data;
+}
 
+vector <set<float>>& type_data::get_one_property_type()
+{
+    return one_property_type;
+}
 
+unordered_map<int, unordered_map<vector<int>, float, vector_int_Hash>>& type_data::get_MDL_score()
+{
+    return MDL_score;
+}

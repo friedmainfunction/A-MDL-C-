@@ -28,11 +28,11 @@ public:
 
     Node& operator = (const Node& another_Node)
     {
-        this->g = another_Node.g;
-        this->h = another_Node.h;
-        this->variables = another_Node.variables;
-        this->leaf = leaf;
-        this->is_in_closedlist = another_Node.is_in_closedlist;
+        this -> g = another_Node.g;
+        this -> h = another_Node.h;
+        this -> variables = another_Node.variables;
+        this -> leaf = leaf;
+        this -> is_in_closedlist = another_Node.is_in_closedlist;
 
         return *this;
         //赋值函数
@@ -85,11 +85,13 @@ public:
         //修改来的路
     }
 
-    bool operator < (const Node& another_variables) const
-    {
-        return this -> get_f() > another_variables.get_f();
-        //小于号反过来定义，方便使用STL
-    }
+    struct CompStr {
+        bool operator()(Node* Node1, Node* Node2)
+        {
+            return Node1->get_f() > Node2->get_f();
+        }
+    };
+    //用于小根堆
 
     void set_in_closedlist()
     {
@@ -112,8 +114,11 @@ public:
 private:
     float h, g;
     varset variables;
+    //当前节点的变量集合
     bool is_in_closedlist;
+    //是否在closedlist
     byte leaf;
+    //来的路径
 };
 
 
