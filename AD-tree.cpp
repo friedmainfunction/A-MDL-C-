@@ -228,7 +228,7 @@ void vary_Node::make_AD_Node(vector<int>& variables, vector<float>& value)
 		sum += children[i] -> get_num();
 	}
 	//计算当前vary_Node的sum值
-
+	/*
 	if (variables.size() == 0 || (variables.back() + 1 <= cache.get_variable_count()))
 	{
 		//除了最后一层的AD_Node，其它地方都要枚举
@@ -256,6 +256,7 @@ void vary_Node::make_AD_Node(vector<int>& variables, vector<float>& value)
 			}
 		}
 	}
+	*/
 	//从vary_Node访问孩子AD_Node(i)再访问孩子vary_Node(j)再访问孩子AD_Node(k)
 	//分别得到n_pa和n_x_pa
 	//以及父集和leaf
@@ -270,4 +271,72 @@ inline int vary_Node::get_sum()
 inline int vary_Node::get_variable_now()
 {
 	return variable_now;
+}
+
+float vary_Node::query(int leaf_val, vector<int>& pa, float* value)
+{
+	int n_x_pa = 0, n_pa = 0;
+	if (children[0] && children[0]->children[pa[0]])
+		n_x_pa = children[0]->children[pa[0]]->query(pa, value, 0);
+	else
+		n_x_pa = 0;
+	pa[leaf_val] = -1;
+
+	if (pa.size() == 1)
+		n_pa = cache.get_my_data().size();
+	else
+	{
+		if (leaf_val == 0)
+			n_pa = children[0] -> children[pa[1]] -> query(pa, value, 1);
+		else
+		{
+			pa[leaf_val] = -1;
+			n_pa = children[0] -> children[pa[0]] -> query(pa, value, 0);
+		}
+	}
+	if (n_x_pa == 0)
+		return 0;
+	else
+		return n_x_pa * (log(n_x_pa) - log(n_pa));
+}
+
+int vary_Node::query(vector<int>& pa, float* value, int now)
+{
+	if (now == pa.size() - 1)
+	{
+		if (children[value[now]])
+			return children[value[now]] -> get_num();
+		else
+			return 0;
+	}
+	
+	if (pa[now + 1] == -1)
+	{ 
+		//如果下一个变量被去掉了，那么考虑两种情况：
+		//1.下一个变量就是最后一个变量，那么直接返回当前vary_Node选定对应值的num
+		//2.下一个变量不是最后一个变量，那么跳过它
+		if (now + 2 == pa.size())
+		{
+			if (children[value[now]])
+				return children[value[now]] -> get_num();
+			else
+				return 0;
+		}
+		else
+		{
+			if (children[value[now]] && children[value[now]] -> children[pa[now + 2] - pa[now] - 1])
+				return children[value[now]] -> children[pa[now + 2] - pa[now] - 1] -> query(pa, value, now + 2);
+			else
+				return 0;
+		}
+	}
+	else
+	{
+		if (children[value[now]] && children[value[now]] -> children[pa[now + 1] - pa[now] - 1])
+			return children[value[now]] -> children[pa[now + 1] - pa[now] - 1] -> query(pa, value, now + 1);
+		else
+			return 0;
+	}
+	//如果下一个变量没有被去掉
+	//先把当前变量的值选定，然后找下一个变量对应的vary_Node
 }

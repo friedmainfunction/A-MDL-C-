@@ -6,6 +6,7 @@
 #include <iostream>
 #include <bitset>
 using namespace std;
+extern int hash_count;
 class varset
 {
 public:
@@ -127,11 +128,12 @@ public:
 
     struct myOwnHash
     {
+        hash<bitset<25>> myhash;
         size_t operator() (const varset& s) const noexcept
         {
-            hash<bitset<25>> myhash;
-            string str;
 
+            
+            hash_count ++;
             return myhash(s.variables);
         }
         //自定类必须自定哈希函数

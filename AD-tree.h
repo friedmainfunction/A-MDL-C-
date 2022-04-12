@@ -51,6 +51,13 @@ public:
 
 	inline int get_variable_now();
 	//获取当前节点的变量
+
+	int query(vector<int>& pa, float *value, int now);
+	//给定leaf和PA以及取值，查询MDL
+
+	float query(int leaf_val, vector<int>& pa, float* value);
+	//入口函数
+
 private:
 	int sum;
 	//所有子AD_Node的和

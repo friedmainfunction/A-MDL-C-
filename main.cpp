@@ -48,10 +48,13 @@ byte variable_count;
 varset all_variables(1);
 
 int MDL_count = 0;
+
+vary_Node* AD_root = NULL;
+
+int hash_count = 0;
 int main()
 {
     boost::timer::auto_cpu_timer act;
-    act.start();
     type_data cache(dataset_path);
     //读入数据集
     byte variable_count = cache.get_variable_count();
@@ -59,6 +62,10 @@ int main()
     varset ancestors(variable_count + 1);
     varset scc(ancestors);
     //初始化两个集合
+
+    int* level_count = new int[variable_count];
+    memset(level_count, 0, sizeof(int) * variable_count);
+    
     priority_queue<Node*, vector<Node*>, Node::CompStr> openlist;
     
     scc.set_first_n(variable_count);
@@ -82,24 +89,15 @@ int main()
     Node_expended = 0;
     out_of_time = false;
     //尚未拓展节点
-    act.start();
-    /*
-    vary_Node* AD_root = new vary_Node(cache);
+    
+    AD_root = new vary_Node(cache);
     vector<float> initial_value;
     vector<int> initial_variables;
     AD_root -> make_AD_Node(initial_variables, initial_value);
     //通过AD-tree计算MDL
-    
-    unordered_map<int, unordered_map<vector<int>, float, vector_int_Hash>>& MDL_score= cache.get_MDL_score();
-    for (auto i = MDL_score.begin(); i != MDL_score.end(); i ++)
-    {
-        for (auto j = (*i).second.begin(); j != (*i).second.end(); j ++)
-        {
-            (*j).second += (log(cache.get_my_data().size()) / 2) * pow(2, (*j).first.size());
-        }
-    }
-    //对所有MDL加上K
-    */
+
+
+    act.start();
     while (openlist.size() > 0 || !out_of_time)
      {
         //若openlist空或超时则跳出
@@ -112,6 +110,9 @@ int main()
         //计数
         varset variables = u -> get_variables();
         //取出当前节点集合
+
+        level_count[variables.get_current_count()] ++;
+        //统计数量
         if (variables == all_variables)
         {
             goal = u;
@@ -223,7 +224,14 @@ int main()
     {
         delete pair.second;
     }
+    for (int i = 0; i < variable_count; i++)
+    {
+        cout << "level " << i << " : " << level_count[i] << endl;
+    }
+    delete level_count;
     //释放空间
     cout << "MDL_count: " << MDL_count << endl;
+    cout << "Node_expended: " << Node_expended << endl;
+    cout << "hash_count: " << hash_count << endl;
     return 0;
 }

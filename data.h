@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <vector>
 #include <iostream>
+#include <queue>
 using namespace std;
 class vector_int_Hash {
 public:
@@ -33,7 +34,7 @@ public:
     byte get_variable_count();
     //获取当前数据集变量个数
 
-    float best_MDL(byte leaf, varset& pa, bool* is_cut_by_superset);
+    float best_MDL(byte leaf, varset& pa, pair<varset, float>& now_pair);
     //递归计算BestMDL
 
     float best_MDL(byte leaf, varset& pa);
@@ -73,8 +74,6 @@ public:
     vector <set<float>>& get_one_property_type();
     //把变量的实例取出
 
-    unordered_map<int, unordered_map<vector<int>, float, vector_int_Hash>>& get_MDL_score();
-    //取出MDL分数的映射
 
 private:
     int upper_bound;
@@ -92,7 +91,7 @@ private:
     unordered_map<int, unordered_map<varset, pair<varset, float>, varset::myOwnHash>> optimal_parent_variables;
     //每个变量对应一张父图，一张父图只有一个最优父集，最优父集又对应了一个分数
 
-    unordered_map<int, unordered_map<vector<int>, float, vector_int_Hash>> MDL_score;
+    unordered_map<int, unordered_map<varset, float, varset::myOwnHash>> MDL_score;
     //缓存MDL
 
     unordered_map<int, unordered_map<varset, bool, varset::myOwnHash>> is_cut_superset;
