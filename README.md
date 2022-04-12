@@ -1,4 +1,5 @@
-# A-MDL-C-
+# Astar-search-to-find-optimal-bayes-network-structure
+
 # 使用方法：
 将main.cpp文件当中的全局变量dataset_path 修改为数据集的路径，将network_path 修改为结果文件的路径  
 编译运行即可
